@@ -1,18 +1,18 @@
 class SendMessageException(Exception):
-    pass
+    """Ошибка отправки сообщения."""
 
 
 class GetAPIAnswerException(Exception):
-    pass
+    """Ошибка, эндпойнт не доступен."""
 
 
 class CheckResponseException(Exception):
-    pass
+    """Ошибка доступа по заданному эндпойнту."""
 
 
 class ParseStatusException(Exception):
-    pass
+    """Передан неизвестный статус работы."""
 
 
 class GlobalsError(Exception):
-    pass
+    """Ошибка, если есть пустые глобальные переменные."""
