@@ -6,6 +6,7 @@ from http import HTTPStatus
 
 import requests
 import telegram
+from telegram.error import TelegramError
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -41,8 +42,10 @@ def check_tokens():
     )
     missing_tokens = []
 
+    global_vars = globals()
+
     for key in TOKENS:
-        if globals().get(key) is None:
+        if not global_vars.get(key):
             missing_tokens.append(key)
 
     if missing_tokens:
@@ -143,11 +146,14 @@ def parse_status(homework):
 
 
 def initialize_logging():
-    """Инициализирует настройки логирования."""
+    """Настройка логирования."""
     logging.basicConfig(
-        level=logging.DEBUG,
-        filename=Path('main.log'),
-        filemode='w'
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('homework.log'),
+        ]
     )
 
 
@@ -177,6 +183,14 @@ def process_homework(
         send_message(bot, homework_status)
 
     return previous_status, previous_name, previous_error
+
+
+def send_error_message(bot, error_message):
+    """Отправляет сообщение об ошибке через Telegram."""
+    try:
+        send_message(bot, error_message)
+    except exceptions.SendMessageException as error:
+        logger.error(f'Ошибка отправки сообщения: {error}')
 
 
 def main():
@@ -218,7 +232,7 @@ def main():
         except exceptions.SendMessageException as error:
             message = f'Ошибка отправки сообщения: {error}'
             logger.error(message)
-            if 'API Telegram недоступно' in str(error):
+            if isinstance(error, TelegramError):
                 continue
             previous_error = message
         except Exception as error:
@@ -230,9 +244,4 @@ def main():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        level=logging.DEBUG,
-        filename=Path('main.log'),
-        filemode='w'
-    )
     main()
