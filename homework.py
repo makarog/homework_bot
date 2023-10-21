@@ -142,6 +142,43 @@ def parse_status(homework):
     )
 
 
+def initialize_logging():
+    """Инициализирует настройки логирования."""
+    logging.basicConfig(
+        level=logging.DEBUG,
+        filename=Path('main.log'),
+        filemode='w'
+    )
+
+
+def process_homework(
+    bot, homework,
+    previous_status,
+    previous_name,
+    previous_error
+):
+    """Обрабатывает информацию о домашней работе отправляет сообщение."""
+    homework_status = parse_status(homework)
+    homework_name = homework['homework_name']
+
+    if (
+        previous_status == homework_status
+        and previous_name == homework_name
+    ):
+        logger.info(homework_status)
+    else:
+        previous_status = homework_status
+        previous_name = homework_name
+
+        if previous_error:
+            send_message(bot, previous_error)
+            previous_error = None
+
+        send_message(bot, homework_status)
+
+    return previous_status, previous_name, previous_error
+
+
 def main():
     """Основная логика работы бота."""
     try:
@@ -151,10 +188,13 @@ def main():
         sys.exit(1)
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
+    initialize_logging()
+
     timestamp = int(time.time())
-    current_status = ''
-    current_error = ''
-    current_name = ''
+    previous_status = None
+    previous_error = None
+    previous_name = None
+
     while True:
         try:
             response = get_api_answer(timestamp)
@@ -164,34 +204,27 @@ def main():
                 logger.info('Статус не обновлен')
             else:
                 for homework in homeworks:
-                    homework_status = parse_status(homework)
-                    homework_name = homework['homework_name']
-                    if (
-                        current_status == homework_status
-                        and current_name == homework_name
-                    ):
-                        logger.info(homework_status)
-                    else:
-                        current_status = homework_status
-                        current_name = homework_name
-                        if current_error != '':
-                            current_error = ''
-                        send_message(bot, homework_status)
+                    (
+                        previous_status,
+                        previous_name,
+                        previous_error
+                    ) = process_homework(
+                        bot, homework,
+                        previous_status,
+                        previous_name,
+                        previous_error
+                    )
+
         except exceptions.SendMessageException as error:
             message = f'Ошибка отправки сообщения: {error}'
             logger.error(message)
             if 'API Telegram недоступно' in str(error):
                 continue
-            if current_error != str(error):
-                current_error = str(error)
-                send_message(bot, message)
-
+            previous_error = message
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
-            if current_error != str(error):
-                current_error = str(error)
-                send_message(bot, message)
+            previous_error = message
         finally:
             time.sleep(RETRY_PERIOD)
 
