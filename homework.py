@@ -8,7 +8,6 @@ import requests
 import telegram
 from telegram.error import TelegramError
 from dotenv import load_dotenv
-from pathlib import Path
 
 import exceptions
 from settings import ENDPOINT, HOMEWORK_VERDICTS, RETRY_PERIOD
