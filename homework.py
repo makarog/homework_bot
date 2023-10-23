@@ -231,13 +231,13 @@ def main():
         except exceptions.SendMessageException as error:
             message = f'Ошибка отправки сообщения: {error}'
             logger.error(message)
-            if isinstance(error, TelegramError):
-                continue
             previous_error = message
+            send_error_message(bot, message)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
             previous_error = message
+            send_error_message(bot, message)
         finally:
             time.sleep(RETRY_PERIOD)
 
